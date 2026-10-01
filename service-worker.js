@@ -1,9 +1,10 @@
-const CACHE_NAME = 'inventario-arboreo-pwa-v1';
+const CACHE_NAME = 'inventario-arboreo-pwa-v2';
 const APP_FILES = [
   './',
   './index.html',
   './buscador_arboles_campus.html',
   './control_consecutivo_arboles.html',
+  './checklist_arboles_campus.html',
   './manifest.webmanifest',
   './icons/tree-mark.svg',
   './icons/icon-192.png',
