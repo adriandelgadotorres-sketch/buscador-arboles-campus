@@ -1,0 +1,27 @@
+{
+  "id": "./buscador_arboles_campus.html",
+  "name": "Inventario arbóreo UNA",
+  "short_name": "Árboles UNA",
+  "description": "Buscador de árboles y control de consecutivos para el trabajo de campo.",
+  "lang": "es",
+  "start_url": "./buscador_arboles_campus.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f3f7f2",
+  "theme_color": "#f3f7f2",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

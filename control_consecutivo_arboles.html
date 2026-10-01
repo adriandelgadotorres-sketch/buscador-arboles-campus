@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f3f7f2">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/tree-mark.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <title>Control de consecutivo · Árboles nuevos</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper:#f3f7f2; --surface:#fff; --ink:#18362d; --muted:#6e8179;
+      --line:#dce7df; --forest:#236b4f; --forest-dark:#174b39; --mint:#e4f1e8;
+      --shadow:0 14px 38px rgba(31,70,51,.07);
+      font-family:"Aptos","Segoe UI",sans-serif; font-synthesis:none; text-rendering:optimizeLegibility;
+    }
+    html[data-theme="dark"] {
+      color-scheme:dark; --paper:#111a15; --surface:#1b2821; --ink:#eaf3eb;
+      --muted:#a8b9ad; --line:#34493c; --forest:#8ac99a; --forest-dark:#b9dfc1;
+      --mint:#263e2d; --shadow:0 14px 38px rgba(0,0,0,.22);
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; min-width:320px; background:var(--paper); color:var(--ink); }
+    button,input { font:inherit; }
+    button { -webkit-tap-highlight-color:transparent; }
+    .page { max-width:850px; margin:auto; padding:22px 32px 46px; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:22px; }
+    h1 { margin:0; font-size:clamp(25px,3.2vw,34px); line-height:1.15; letter-spacing:-.035em; font-weight:680; }
+    .theme-toggle { display:grid; place-items:center; width:44px; min-height:44px; border:1px solid var(--line); border-radius:10px; background:var(--surface); color:var(--ink); cursor:pointer; }
+    .theme-toggle:hover { background:var(--mint); }
+    .theme-toggle:focus-visible,.page-tab:focus-visible,.add-button:focus-visible { outline:3px solid #78b68a; outline-offset:2px; }
+    .theme-toggle svg { width:18px; height:18px; }
+    .theme-toggle .sun-icon { display:none; }
+    html[data-theme="dark"] .theme-toggle .moon-icon { display:none; }
+    html[data-theme="dark"] .theme-toggle .sun-icon { display:block; }
+    .page-tabs { display:flex; gap:6px; margin:-9px 0 19px; border-bottom:1px solid var(--line); }
+    .page-tab { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:0 14px; border:1px solid transparent; border-radius:10px 10px 0 0; color:var(--muted); text-decoration:none; font-size:13px; font-weight:650; }
+    .page-tab:hover { color:var(--ink); background:var(--mint); }
+    .page-tab[aria-current="page"] { border-color:var(--line); border-bottom-color:var(--surface); background:var(--surface); color:var(--forest-dark); margin-bottom:-1px; }
+    .panel { border:1px solid var(--line); border-radius:16px; background:var(--surface); box-shadow:var(--shadow); overflow:hidden; }
+    .summary { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:21px 22px; border-bottom:1px solid var(--line); }
+    .summary-label,.last-label { display:block; color:var(--muted); font-size:12px; font-weight:650; }
+    .next-number { display:block; margin-top:4px; color:var(--forest-dark); font-size:clamp(37px,7vw,54px); line-height:1; font-variant-numeric:tabular-nums; font-weight:720; letter-spacing:-.04em; }
+    .summary-help { margin:9px 0 0; color:var(--muted); font-size:12px; }
+    .last-box { min-width:125px; padding:12px 14px; border:1px solid var(--line); border-radius:12px; background:var(--paper); }
+    .last-number { display:block; margin-top:5px; color:var(--ink); font-size:22px; font-weight:700; font-variant-numeric:tabular-nums; }
+    .entry { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:end; gap:12px; padding:19px 22px 21px; }
+    .entry-field label { display:block; margin-bottom:7px; color:#345348; font-size:13px; font-weight:700; }
+    input[type="number"] { width:100%; min-height:48px; padding:10px 12px; border:1px solid #d7e3db; border-radius:10px; background:var(--surface); color:var(--ink); font-size:16px; outline:none; }
+    input:focus { border-color:#6fa586; box-shadow:0 0 0 3px rgba(80,145,105,.14); }
+    input::placeholder { color:#87968f; }
+    .add-button { min-height:48px; padding:0 20px; border:1px solid var(--forest); border-radius:10px; background:var(--forest); color:#fff; font-weight:700; cursor:pointer; }
+    .add-button:hover { filter:brightness(.94); }
+    .message { grid-column:1/-1; min-height:18px; margin:0; color:var(--muted); font-size:12px; }
+    .message.error { color:#a44135; }
+    .list-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:18px 22px 12px; }
+    .list-head h2 { margin:0; font-size:16px; letter-spacing:-.02em; }
+    .entries-count { color:var(--muted); font-size:12px; }
+    .table-scroll { overflow:auto; }
+    table { width:100%; border-collapse:collapse; text-align:left; }
+    th { padding:10px 22px; background:#f8faf8; color:#85948c; font-size:10px; font-weight:700; }
+    td { padding:13px 22px; border-top:1px solid #edf2ee; font-size:14px; }
+    tbody tr:hover { background:#f8fbf8; }
+    .number-cell { color:var(--forest-dark); font-weight:700; font-variant-numeric:tabular-nums; }
+    .date-cell { color:var(--muted); font-size:12px; }
+    .empty { padding:34px 20px 38px; color:var(--muted); text-align:center; font-size:13px; line-height:1.5; }
+    .note { margin:12px 2px 0; color:var(--muted); font-size:11px; line-height:1.5; }
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    html[data-theme="dark"] input[type="number"] { border-color:var(--line); }
+    html[data-theme="dark"] input::placeholder { color:#87998d; }
+    html[data-theme="dark"] .entry-field label { color:#c1d6c6; }
+    html[data-theme="dark"] .message.error { color:#f0a79e; }
+    html[data-theme="dark"] th { background:#202f26; }
+    html[data-theme="dark"] td { border-color:#2b3d32; }
+    html[data-theme="dark"] tbody tr:hover { background:#202f26; }
+    @media (max-width:600px) {
+      .page { width:100%; max-width:540px; padding:max(12px,env(safe-area-inset-top)) 14px max(20px,env(safe-area-inset-bottom)); }
+      .topbar { margin-bottom:14px; }
+      h1 { font-size:23px; }
+      .page-tabs { margin:-7px 0 13px; }
+      .page-tab { padding:0 12px; }
+      .summary { padding:17px 15px; gap:9px; }
+      .summary-label,.last-label { font-size:11px; }
+      .next-number { font-size:43px; }
+      .last-box { min-width:107px; padding:10px; }
+      .last-number { font-size:20px; }
+      .entry { gap:9px; padding:15px; }
+      .add-button { padding:0 15px; }
+      .list-head { padding:16px 15px 11px; }
+      th { padding:9px 15px; }
+      td { padding:12px 15px; }
+    }
+    @media (max-width:370px) {
+      .page { padding-left:10px; padding-right:10px; }
+      .summary { align-items:flex-start; flex-direction:column; }
+      .last-box { width:100%; }
+      .entry { grid-template-columns:minmax(0,1fr); }
+      .add-button { width:100%; }
+      .message { grid-column:auto; }
+    }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto !important; transition:none !important; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="topbar">
+      <h1>Control de árboles nuevos</h1>
+      <button id="themeToggle" class="theme-toggle" type="button" aria-label="Cambiar a modo oscuro" title="Cambiar a modo oscuro" aria-pressed="false">
+        <svg class="moon-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20.2 15.5A8.4 8.4 0 0 1 8.5 3.8 8.7 8.7 0 1 0 20.2 15.5Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg class="sun-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </header>
+    <nav class="page-tabs" aria-label="Páginas del inventario">
+      <a class="page-tab" href="buscador_arboles_campus.html">Buscador</a>
+      <a class="page-tab" href="control_consecutivo_arboles.html" aria-current="page">Consecutivo</a>
+    </nav>
+
+    <section class="panel" aria-label="Control de consecutivo">
+      <div class="summary" aria-live="polite">
+        <div>
+          <span class="summary-label">Próximo árbol disponible</span>
+          <strong class="next-number" id="nextNumber">—</strong>
+          <p class="summary-help" id="summaryHelp">Agrega el primer número para iniciar el consecutivo.</p>
+        </div>
+        <div class="last-box"><span class="last-label">Último árbol ingresado</span><strong class="last-number" id="lastNumber">—</strong></div>
+      </div>
+
+      <form class="entry" id="entryForm" novalidate>
+        <div class="entry-field">
+          <label for="newNumber">Árbol nuevo</label>
+          <input id="newNumber" type="number" min="1" step="1" inputmode="numeric" placeholder="Escribe el número" autocomplete="off" required>
+        </div>
+        <button class="add-button" type="submit">Agregar</button>
+        <p class="message" id="formMessage" aria-live="polite">Ingresa el consecutivo del árbol nuevo.</p>
+      </form>
+    </section>
+
+    <section class="panel" style="margin-top:16px" aria-labelledby="entriesTitle">
+      <div class="list-head"><h2 id="entriesTitle">Árboles ingresados</h2><span class="entries-count" id="entriesCount">0 árboles</span></div>
+      <div class="table-scroll">
+        <table>
+          <caption class="sr-only">Control de consecutivos añadidos y fecha de registro</caption>
+          <thead><tr><th scope="col">Número de árbol</th><th scope="col">Fecha de ingreso</th></tr></thead>
+          <tbody id="entriesBody"></tbody>
+        </table>
+        <div class="empty" id="emptyState">Todavía no hay árboles ingresados. Añade un número para comenzar.</div>
+      </div>
+    </section>
+    <p class="note">El número siguiente se calcula como el último que agregaste más uno. Los registros se conservan en este navegador.</p>
+  </main>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const entriesKey = 'buscadorArboles:consecutivosNuevos:v1';
+    const themeKey = 'buscadorArboles:tema:v1';
+    let entries = [];
+    try {
+      const saved = JSON.parse(localStorage.getItem(entriesKey) || '[]');
+      if (Array.isArray(saved)) entries = saved.filter(row => Number.isSafeInteger(row.number) && row.number > 0 && typeof row.addedAt === 'string');
+    } catch { entries = []; }
+
+    function applyTheme(theme, remember = false) {
+      const dark = theme === 'dark';
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      const button = $('themeToggle');
+      button.setAttribute('aria-pressed', String(dark));
+      button.setAttribute('aria-label', dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
+      button.title = dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
+      document.querySelector('meta[name="theme-color"]').content = dark ? '#111a15' : '#f3f7f2';
+      if (remember) { try { localStorage.setItem(themeKey, dark ? 'dark' : 'light'); } catch { /* El cambio visual sigue disponible sin almacenamiento local. */ } }
+    }
+    function saveEntries() {
+      try { localStorage.setItem(entriesKey, JSON.stringify(entries)); return true; }
+      catch { return false; }
+    }
+    function formatDate(value) {
+      return new Intl.DateTimeFormat('es-CR',{dateStyle:'medium',timeStyle:'short'}).format(new Date(value));
+    }
+    function render() {
+      const last = entries[0]?.number;
+      $('lastNumber').textContent = last ?? '—';
+      $('nextNumber').textContent = last ? last + 1 : '—';
+      $('summaryHelp').textContent = last ? `Siguiente al último consecutivo ingresado (${last}).` : 'Agrega el primer número para iniciar el consecutivo.';
+      $('entriesCount').textContent = `${entries.length} ${entries.length === 1 ? 'árbol' : 'árboles'}`;
+      $('entriesBody').innerHTML = entries.map(row => `<tr><td class="number-cell">${row.number}</td><td class="date-cell">${formatDate(row.addedAt)}</td></tr>`).join('');
+      $('emptyState').hidden = entries.length > 0;
+    }
+    $('entryForm').addEventListener('submit',event=>{
+      event.preventDefault();
+      const value = Number($('newNumber').value);
+      const message = $('formMessage');
+      message.classList.remove('error');
+      if (!Number.isSafeInteger(value) || value < 1) {
+        message.textContent = 'Escribe un número entero positivo.'; message.classList.add('error'); return;
+      }
+      if (entries.some(row=>row.number === value)) {
+        message.textContent = `El árbol ${value} ya está registrado.`; message.classList.add('error'); return;
+      }
+      entries.unshift({number:value,addedAt:new Date().toISOString()});
+      const saved = saveEntries();
+      $('newNumber').value = '';
+      message.textContent = saved ? `Árbol ${value} agregado. El siguiente disponible es ${value+1}.` : `Árbol ${value} agregado en esta sesión; el navegador no permitió guardarlo para la próxima vez.`;
+      render();
+      $('newNumber').focus();
+    });
+    $('themeToggle').addEventListener('click',()=>applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark',true));
+    let savedTheme = '';
+    try { savedTheme = localStorage.getItem(themeKey) || ''; } catch { savedTheme = ''; }
+    applyTheme(savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+    render();
+    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+      navigator.serviceWorker.register('./service-worker.js', {scope:'./'}).catch(()=>{});
+    }
+  </script>
+</body>
+</html>
