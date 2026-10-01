@@ -1,7 +1,8 @@
-const CACHE_NAME = 'inventario-arboreo-pwa-v2';
+const CACHE_NAME = 'inventario-arboreo-pwa-v3';
 const APP_FILES = [
   './',
   './index.html',
+  './Mediciones.csv',
   './buscador_arboles_campus.html',
   './control_consecutivo_arboles.html',
   './checklist_arboles_campus.html',
@@ -56,3 +57,5 @@ self.addEventListener('fetch', event => {
     }
   })());
 });
+
+

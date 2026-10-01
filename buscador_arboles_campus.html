@@ -269,7 +269,7 @@
     <header class="topbar">
       <h1 id="pageTitle">Buscador de árboles</h1>
       <div class="source-wrap">
-        <span class="source-label" id="sourceStatus">Datos de muestra</span>
+        <span class="source-label" id="sourceStatus">Cargando inventario…</span>
         <input id="csvFile" type="file" accept=".csv,text/csv">
         <label class="upload-button" for="csvFile" aria-label="Cargar archivo CSV" title="Cargar archivo CSV"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 13V3m0 0L6.5 6.5M10 3l3.5 3.5M4 12.5v3A1.5 1.5 0 0 0 5.5 17h9a1.5 1.5 0 0 0 1.5-1.5v-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="upload-text">Cargar CSV</span></label>
         <button id="themeToggle" class="theme-toggle" type="button" aria-label="Cambiar a modo oscuro" title="Cambiar a modo oscuro" aria-pressed="false">
@@ -288,6 +288,11 @@
       <aside class="filters" aria-labelledby="filterTitle">
         <div class="filter-heading"><button class="reset" id="resetFilters" type="button">Limpiar filtros</button></div>
         <div class="filters-grid">
+          <div class="field campus-field">
+            <label for="campus">Campus</label>
+            <select id="campus" aria-describedby="campusHelp"><option value="">Selecciona un campus</option></select>
+            <p class="subtext" id="campusHelp">Elige primero el campus para ver sus árboles y filtrar el resto.</p>
+          </div>
           <div class="field">
             <label for="species">Especie</label>
             <div class="species-search">
@@ -330,29 +335,15 @@
           </table>
           <div class="empty" id="emptyState" hidden><span class="empty-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.7"/><path d="m16 16 4 4M8 11h5.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><strong id="emptyTitle">No hay coincidencias</strong><p id="emptyMessage">Prueba con otro valor o amplía el rango del diámetro.</p></div>
         </div>
-        <div class="footnote"><span id="dataFootnote">Registros de muestra · No corresponden a un inventario real</span><span id="visibleFootnote">Mostrando todos</span></div>
+        <div class="footnote"><span id="dataFootnote">Cargando inventario de campo…</span><span id="visibleFootnote">Mostrando todos</span></div>
       </section>
     </section>
   </main>
 
   <script>
     // Datos ilustrativos, inventados únicamente para mostrar la interacción.
-    const sampleTrees = [
-      {plate:"241", species:"Roble sabana", scientific:"Tabebuia rosea", dap:18.4, status:"Activo"},
-      {plate:"252", species:"Guanacaste", scientific:"Enterolobium cyclocarpum", dap:32.1, status:"Activo"},
-      {plate:"260", species:"Roble sabana", scientific:"Tabebuia rosea", dap:25.3, status:"Activo"},
-      {plate:"263", species:"Corteza amarilla", scientific:"Handroanthus ochraceus", dap:29.8, status:"Activo"},
-      {plate:"268", species:"Guácimo", scientific:"Guazuma ulmifolia", dap:16.2, status:"Activo"},
-      {plate:"271", species:"Roble sabana", scientific:"Tabebuia rosea", dap:34.6, status:"Activo"},
-      {plate:"276", species:"Cenízaro", scientific:"Samanea saman", dap:51.4, status:"Activo"},
-      {plate:"281", species:"Corteza amarilla", scientific:"Handroanthus ochraceus", dap:22.7, status:"Activo"},
-      {plate:"289", species:"Guanacaste", scientific:"Enterolobium cyclocarpum", dap:46.9, status:"Activo"},
-      {plate:"294", species:"Guácimo", scientific:"Guazuma ulmifolia", dap:27.2, status:"Activo"},
-      {plate:"305", species:"Roble sabana", scientific:"Tabebuia rosea", dap:41.0, status:"Activo"},
-      {plate:"318", species:"Cenízaro", scientific:"Samanea saman", dap:38.5, status:"Activo"}
-    ];
-    let trees = sampleTrees;
-    let usingSample = true;
+    let trees = [];
+    let inventoryLoaded = false;
     const foundStorageKey = 'buscadorArboles:encontrados:v1';
     let foundTrees = new Set();
     try { foundTrees = new Set(JSON.parse(localStorage.getItem(foundStorageKey) || '[]')); } catch { foundTrees = new Set(); }
@@ -368,7 +359,7 @@
       if (remember) { try { localStorage.setItem(themeStorageKey, dark ? 'dark' : 'light'); } catch { /* El cambio visual funciona aunque no se pueda guardar la preferencia. */ } }
     }
     const $ = (id) => document.getElementById(id);
-    const ui = {species:$('species'), diameter:$('diameter'), tolerance:$('tolerance'), plateFrom:$('plateFrom'), plateTo:$('plateTo')};
+    const ui = {campus:$('campus'), species:$('species'), diameter:$('diameter'), tolerance:$('tolerance'), plateFrom:$('plateFrom'), plateTo:$('plateTo')};
 
     function escapeHtml(value) {
       return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -390,14 +381,16 @@
     }
     function treeKey(tree) {
       const plate = normalizeSearch(tree.plate);
-      return plate ? `placa:${plate}` : `registro:${normalizeSearch(speciesLabel(tree))}|${normalizeSearch(tree.dap)}`;
+      const campus = normalizeSearch(tree.campus);
+      return plate ? `campus:${campus}|placa:${plate}` : `campus:${campus}|registro:${normalizeSearch(speciesLabel(tree))}|${normalizeSearch(tree.dap)}`;
     }
     function saveFoundTrees() {
       try { localStorage.setItem(foundStorageKey, JSON.stringify([...foundTrees])); } catch { /* La búsqueda sigue funcionando si el navegador bloquea el almacenamiento local. */ }
     }
     function updateSpeciesOptions(query = '') {
       const needle = normalizeSearch(query);
-      const labels = [...new Set(trees.filter(tree=>tree.species).map(speciesLabel))]
+      const campusTrees = ui.campus.value ? trees.filter(tree=>tree.campus===ui.campus.value) : [];
+      const labels = [...new Set(campusTrees.filter(tree=>tree.species).map(speciesLabel))]
         .sort((a,b)=>a.localeCompare(b,'es'))
         .filter(label=>!needle || normalizeSearch(label).includes(needle));
       const suggestions = $('speciesSuggestions');
@@ -406,6 +399,8 @@
       ui.species.setAttribute('aria-expanded', String(!suggestions.hidden));
     }
     function selectedTrees() {
+      if (!ui.campus.value) return [];
+      const campus = ui.campus.value;
       const species = normalizeSearch(ui.species.value);
       const center = numeric(ui.diameter.value);
       const tolerance = Math.max(0, numeric(ui.tolerance.value) || 0);
@@ -413,6 +408,7 @@
       let to = numeric(ui.plateTo.value);
       if (Number.isFinite(from) && Number.isFinite(to) && from > to) [from,to] = [to,from];
       return trees.filter(tree => {
+        if (tree.campus !== campus) return false;
         if (species && !normalizeSearch(speciesLabel(tree)).includes(species)) return false;
         const dap = numeric(tree.dap);
         if (Number.isFinite(center) && !(Number.isFinite(dap) && dap >= center-tolerance && dap <= center+tolerance)) return false;
@@ -425,15 +421,21 @@
         return Number.isFinite(na) && Number.isFinite(nb) ? na-nb : String(a.plate).localeCompare(String(b.plate),'es',{numeric:true});
       });
     }
+    function setFilterAvailability() {
+      const enabled = Boolean(ui.campus.value);
+      [ui.species,ui.diameter,ui.tolerance,ui.plateFrom,ui.plateTo].forEach(field=>{field.disabled=!enabled;});
+    }
     function render() {
+      setFilterAvailability();
       const matches = selectedTrees();
       const center = numeric(ui.diameter.value);
       const tolerance = Math.max(0, numeric(ui.tolerance.value) || 0);
       $('resultCount').textContent = matches.length;
       $('resultWord').textContent = matches.length === 1 ? 'árbol' : 'árboles';
-      $('dataFootnote').textContent = usingSample ? 'Registros de muestra · No corresponden a un inventario real' : 'Datos cargados desde un CSV en este dispositivo';
-      const foundCount = trees.filter(tree=>foundTrees.has(treeKey(tree))).length;
-      $('visibleFootnote').textContent = `${matches.length === trees.length ? 'Mostrando todos' : `De ${trees.length} registros`} · ${foundCount} ya encontrados`;
+      $('dataFootnote').textContent = inventoryLoaded ? 'Inventario cargado desde Mediciones.csv' : 'Cargando inventario de campo…';
+      const campusTrees = ui.campus.value ? trees.filter(tree=>tree.campus===ui.campus.value) : [];
+      const foundCount = campusTrees.filter(tree=>foundTrees.has(treeKey(tree))).length;
+      $('visibleFootnote').textContent = !ui.campus.value ? 'Selecciona un campus para mostrar sus árboles' : `${matches.length === campusTrees.length ? 'Mostrando todos' : `De ${campusTrees.length} registros`} · ${foundCount} ya encontrados`;
       $('diameterHelp').textContent = Number.isFinite(center)
         ? `Rango aplicado: ${Math.max(0,center-tolerance).toLocaleString('es-CR')} a ${(center+tolerance).toLocaleString('es-CR')} cm.`
         : 'Con 25 ± 10 cm, se muestran árboles de 15 a 35 cm.';
@@ -455,8 +457,8 @@
       }).join('');
       $('emptyState').hidden = matches.length > 0;
       if (matches.length === 0) {
-        $('emptyTitle').textContent = trees.length ? 'No hay coincidencias' : 'Carga un archivo para empezar';
-        $('emptyMessage').textContent = trees.length ? 'Prueba con otro valor o amplía el rango del diámetro.' : 'Selecciona un archivo CSV con placa, especie y DAP para explorar el inventario.';
+        $('emptyTitle').textContent = !ui.campus.value && trees.length ? 'Selecciona un campus' : trees.length ? 'No hay coincidencias' : 'Cargando inventario';
+        $('emptyMessage').textContent = !ui.campus.value && trees.length ? 'El campus se aplica primero; después puedes combinar los demás filtros.' : trees.length ? 'Prueba con otro valor o amplía el rango del diámetro.' : 'Se están cargando los árboles del archivo Mediciones.csv.';
       }
     }
     function parseCsv(text) {
@@ -478,14 +480,39 @@
       const key = value => String(value).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
       const headers = rows.shift().map(key);
       const find = names => headers.findIndex(header=>names.includes(header));
-      const plateIndex = find(['numeroplaca','placa','codigomedicion','codigoplaca']);
+      const plateIndex = find(['placafisica','numeroplaca','placa','codigoplaca','codigomedicion']);
+      const campusIndex = find(['campus','codigocampus']);
+      const labelIndex = find(['label','etiqueta']);
       const speciesIndex = find(['especie','nombreespecie','especiecomun','nombrecomun','nombretaxon','especienombre','especienombreotra']);
       const scientificIndex = find(['nombrecientifico','nombrecientificoaceptado','nombrelatin','especiecientifica','especienombrecientifico']);
       const dapIndex = find(['dapcm','dap','diametrocm','diametro','diametroa1.3m']);
       const statusIndex = find(['estadoarbol','estado']);
-      if (plateIndex < 0 || speciesIndex < 0 || dapIndex < 0) throw new Error('No reconocí las columnas requeridas. Usa NumeroPlaca, NombreEspecie (o Especie) y DAP_cm (también se aceptan nombres equivalentes).');
-      return rows.map(cells=>({plate:cells[plateIndex]?.trim()||'',species:cells[speciesIndex]?.trim()||'',scientific:scientificIndex>=0?(cells[scientificIndex]?.trim()||''):'',dap:cells[dapIndex]?.trim()||'',status:statusIndex>=0?(cells[statusIndex]?.trim()||'Sin dato'):'Sin dato'})).filter(tree=>tree.plate || tree.species || tree.dap);
+      if (plateIndex < 0 || campusIndex < 0 || speciesIndex < 0 || dapIndex < 0) throw new Error('El archivo debe incluir Campus, PlacaFisica, Especie y DAP_cm.');
+      return rows.map(cells=>({plate:cells[plateIndex]?.trim()||'',campus:cells[campusIndex]?.trim()||'',label:labelIndex>=0?(cells[labelIndex]?.trim()||''):'',species:cells[speciesIndex]?.trim()||'',scientific:scientificIndex>=0?(cells[scientificIndex]?.trim()||''):'',dap:cells[dapIndex]?.trim()||'',status:statusIndex>=0?(cells[statusIndex]?.trim()||'Sin dato'):'Sin dato'})).filter(tree=>tree.campus && tree.plate && plateNumber(tree.plate)>0 && normalizeSearch(tree.label)!=='arbol nuevo');
     }
+    function updateCampusOptions() {
+      const previous = ui.campus.value;
+      const options = [...new Set(trees.map(tree=>tree.campus).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+      ui.campus.innerHTML = '<option value="">Selecciona un campus</option>' + options.map(code=>`<option value="${escapeHtml(code)}">${escapeHtml(code)}</option>`).join('');
+      ui.campus.value = options.includes(previous) ? previous : '';
+    }
+    async function loadDefaultInventory() {
+      try {
+        const response = await fetch('./Mediciones.csv');
+        if (!response.ok) throw new Error('No se pudo cargar Mediciones.csv.');
+        trees = parseCsv((await response.text()).replace(/^\uFEFF/,''));
+        inventoryLoaded = true; updateCampusOptions(); updateSpeciesOptions();
+        $('sourceStatus').textContent = `Mediciones.csv · ${trees.length.toLocaleString('es-CR')} árboles`;
+        render();
+      } catch (error) {
+        $('sourceStatus').textContent = 'Inventario no disponible';
+        $('dataFootnote').textContent = 'No se pudo cargar Mediciones.csv';
+        $('emptyTitle').textContent = 'No se cargó el inventario';
+        $('emptyMessage').textContent = 'Conéctate una vez para cargar los datos o selecciona el CSV guardado en el dispositivo.';
+        $('emptyState').hidden = false;
+      }
+    }
+    ui.campus.addEventListener('change',()=>{ui.species.value='';$('speciesSuggestions').hidden=true;ui.species.setAttribute('aria-expanded','false');updateSpeciesOptions('');render();});
     ui.species.addEventListener('input',()=>{render();updateSpeciesOptions(ui.species.value);});
     ui.species.addEventListener('focus',()=>updateSpeciesOptions(ui.species.value));
     ui.species.addEventListener('keydown',event=>{
@@ -504,7 +531,7 @@
       if (!event.target.closest('.species-search')) { $('speciesSuggestions').hidden=true; ui.species.setAttribute('aria-expanded','false'); }
     });
     [ui.diameter,ui.tolerance,ui.plateFrom,ui.plateTo].forEach(el=>el.addEventListener('input',render));
-    $('resetFilters').addEventListener('click',()=>{ui.species.value='';ui.diameter.value='';ui.tolerance.value='10';ui.plateFrom.value='';ui.plateTo.value='';updateSpeciesOptions('');render();});
+    $('resetFilters').addEventListener('click',()=>{ui.campus.value='';ui.species.value='';ui.diameter.value='';ui.tolerance.value='10';ui.plateFrom.value='';ui.plateTo.value='';updateSpeciesOptions('');render();});
     $('treeRows').addEventListener('click',event=>{
       const button=event.target.closest('.found-toggle'); if (!button) return;
       const key=button.dataset.treeKey;
@@ -521,15 +548,17 @@
         const text = (await file.text()).replace(/^\uFEFF/,'');
         const loaded = parseCsv(text);
         if (!loaded.length) throw new Error('No se encontraron filas de árboles en el archivo.');
-        trees = loaded; usingSample = false; updateSpeciesOptions();
-        ui.species.value=''; ui.diameter.value=''; ui.tolerance.value='10'; ui.plateFrom.value=''; ui.plateTo.value='';
+        trees = loaded; inventoryLoaded = true; updateCampusOptions(); updateSpeciesOptions();
+        ui.campus.value=''; ui.species.value=''; ui.diameter.value=''; ui.tolerance.value='10'; ui.plateFrom.value=''; ui.plateTo.value='';
         $('sourceStatus').textContent = file.name;
         render();
       } catch (error) { window.alert(error.message); }
       event.target.value='';
     });
+    updateCampusOptions();
     updateSpeciesOptions();
     render();
+    loadDefaultInventory();
     if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
       navigator.serviceWorker.register('./service-worker.js', {scope:'./'}).catch(()=>{});
     }

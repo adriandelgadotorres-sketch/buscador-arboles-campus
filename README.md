@@ -1,6 +1,6 @@
 # Buscador de árboles
 
-PWA para consultar árboles por especie, diámetro y número de placa; llevar el consecutivo de árboles nuevos; y marcar las placas medidas en los campus Omar Dengo y Benjamín Núñez. El checklist incorpora el inventario incluido en el archivo recibido y conserva sus marcas iniciales.
+PWA para consultar el inventario de `Mediciones.csv` por campus, especie, diámetro y número de placa; llevar el consecutivo de árboles nuevos; y marcar las placas medidas en el checklist. El checklist conserva sus marcas iniciales y completa los rangos indicados por campus.
 
 Está preparada para instalarse desde el navegador del TDC6 y cargar sus páginas sin conexión después de la primera visita.
 
@@ -10,4 +10,4 @@ La aplicación se sirve desde GitHub Pages. Abra `https://adriandelgadotorres-sk
 
 ## Datos
 
-Las marcas del buscador y del checklist, las preferencias de tema y el control de consecutivos se guardan en el almacenamiento local del navegador. GitHub Pages distribuye las actualizaciones del sitio, pero esta versión no sincroniza los datos de campo entre dispositivos o personas. El inventario del checklist es una copia estática del archivo incorporado y debe actualizarse cuando se disponga de una nueva versión.
+La copia publicada de `Mediciones.csv` se carga automáticamente y queda disponible sin conexión después de la primera visita. Las marcas del buscador y del checklist, las preferencias de tema y el control de consecutivos se guardan en el almacenamiento local del navegador. GitHub Pages distribuye las actualizaciones del sitio, pero esta versión no sincroniza los datos de campo entre dispositivos o personas. El inventario del checklist es una copia estática del archivo incorporado y debe actualizarse cuando se disponga de una nueva versión.
